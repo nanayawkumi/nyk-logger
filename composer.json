@@ -1,0 +1,51 @@
+{
+    "name": "nanayawkumi/nyk-logger",
+    "description": "Send global Laravel 13 errors to email using the Brevo API",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "laravel",
+        "logging",
+        "brevo",
+        "error-reporting",
+        "notifications"
+    ],
+    "authors": [
+        {
+            "name": "Nana Yaw Kumi"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "laravel/framework": "^13.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^11.0",
+        "phpunit/phpunit": "^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nanayawkumi\\NykLogger\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Nanayawkumi\\NykLogger\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Nanayawkumi\\NykLogger\\NykLoggerServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true
+    }
+}
