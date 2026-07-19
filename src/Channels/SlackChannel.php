@@ -12,13 +12,13 @@ use Throwable;
 /**
  * Delivers alerts to a Slack Incoming Webhook using Block Kit formatting.
  */
-final readonly class SlackChannel implements AlertChannel
+final class SlackChannel implements AlertChannel
 {
-    private const int TIMEOUT_SECONDS = 10;
+    private const TIMEOUT_SECONDS = 10;
 
     public function __construct(
-        private HttpFactory $http,
-        private ?string $webhookUrl,
+        private readonly HttpFactory $http,
+        private readonly ?string $webhookUrl,
     ) {
     }
 

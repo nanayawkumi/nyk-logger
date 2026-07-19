@@ -11,21 +11,21 @@ use Nanayawkumi\NykLogger\Contracts\AlertChannel;
 /**
  * Resolves the set of alert channels enabled in configuration.
  */
-final readonly class ChannelManager
+final class ChannelManager
 {
     /**
      * Map of channel name => container binding.
      *
      * @var array<string, class-string<AlertChannel>>
      */
-    private const array DRIVERS = [
+    private const DRIVERS = [
         'mail' => BrevoMailChannel::class,
         'slack' => SlackChannel::class,
     ];
 
     public function __construct(
-        private Container $container,
-        private Config $config,
+        private readonly Container $container,
+        private readonly Config $config,
     ) {
     }
 

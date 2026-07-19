@@ -9,30 +9,30 @@ namespace Nanayawkumi\NykLogger\Support;
  * context is captured at build time so the payload can be safely queued and
  * processed by a worker where the original request no longer exists.
  */
-final readonly class AlertPayload
+final class AlertPayload
 {
     /**
      * @param  array<string, mixed>  $context
      */
     public function __construct(
-        public string $level,
-        public string $title,
-        public string $message,
-        public string $environment,
-        public string $appName,
-        public ?string $exceptionClass,
-        public ?string $file,
-        public ?int $line,
-        public ?string $code,
-        public ?string $trace,
-        public string $url,
-        public string $method,
-        public ?string $ip,
-        public ?string $userAgent,
-        public int|string|null $userId,
-        public array $context,
-        public string $timestamp,
-        public string $fingerprint,
+        public readonly string $level,
+        public readonly string $title,
+        public readonly string $message,
+        public readonly string $environment,
+        public readonly string $appName,
+        public readonly ?string $exceptionClass,
+        public readonly ?string $file,
+        public readonly ?int $line,
+        public readonly ?string $code,
+        public readonly ?string $trace,
+        public readonly string $url,
+        public readonly string $method,
+        public readonly ?string $ip,
+        public readonly ?string $userAgent,
+        public readonly int|string|null $userId,
+        public readonly array $context,
+        public readonly string $timestamp,
+        public readonly string $fingerprint,
     ) {
     }
 

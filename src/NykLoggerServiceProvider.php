@@ -18,7 +18,7 @@ use Nanayawkumi\NykLogger\Support\Redactor;
 
 final class NykLoggerServiceProvider extends ServiceProvider
 {
-    private const string CONFIG_KEY = 'nyk-logger';
+    private const CONFIG_KEY = 'nyk-logger';
 
     public function register(): void
     {

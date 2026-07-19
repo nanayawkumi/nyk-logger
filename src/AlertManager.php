@@ -25,9 +25,9 @@ use Throwable;
  */
 final class AlertManager
 {
-    private const string COOLDOWN_PREFIX = 'nyk-logger:cooldown:';
+    private const COOLDOWN_PREFIX = 'nyk-logger:cooldown:';
 
-    private const string RATE_LIMIT_KEY = 'nyk-logger:ratelimit';
+    private const RATE_LIMIT_KEY = 'nyk-logger:ratelimit';
 
     /**
      * Optional user-supplied fingerprint resolver:

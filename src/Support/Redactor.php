@@ -9,17 +9,17 @@ namespace Nanayawkumi\NykLogger\Support;
  * transmitted to a third-party API. Matching is done on array keys
  * (case-insensitive) and on value patterns (regex).
  */
-final readonly class Redactor
+final class Redactor
 {
-    private const string PLACEHOLDER = '[REDACTED]';
+    private const PLACEHOLDER = '[REDACTED]';
 
     /**
      * @param  list<string>  $keys
      * @param  list<string>  $patterns
      */
     public function __construct(
-        private array $keys = [],
-        private array $patterns = [],
+        private readonly array $keys = [],
+        private readonly array $patterns = [],
     ) {
     }
 

@@ -1,11 +1,11 @@
 # nyk-logger
 
-[![PHP](https://img.shields.io/badge/PHP-%5E8.4-777bb4)](https://php.net)
-[![Laravel](https://img.shields.io/badge/Laravel-%5E13.0-ff2d20)](https://laravel.com)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[PHP](https://php.net)
+[Laravel](https://laravel.com)
+[License](LICENSE)
 
-Lightweight Laravel 13 package that globally catches application errors and
-exceptions and dispatches structured alerts through pluggable channels —
+Lightweight Laravel package (10 → 13) that globally catches application errors
+and exceptions and dispatches structured alerts through pluggable channels —
 **email via the Brevo Transactional API v3** and/or **Slack** — completely
 bypassing your host app's SMTP configuration.
 
@@ -17,8 +17,10 @@ Built for production noise control and safety:
 - **Ignore rules** for noisy, non-actionable errors (404s, validation, etc.)
 - **Automatic secret redaction** before anything leaves your app
 - **Manual reporting API**, **lifecycle events**, and **custom grouping**
-- **`php artisan nyk-logger:test`** + boot-time config validation warnings
+- `php artisan nyk-logger:test` + boot-time config validation warnings
 - **Crash-safe**: a downed provider can never take down the host app
+
+
 
 ## Contents
 
@@ -37,11 +39,15 @@ Built for production noise control and safety:
 - [Testing](#testing)
 - [License](#license)
 
+
+
 ## Requirements
 
-- PHP `^8.4`
-- Laravel `^13.0`
+- PHP `^8.1`
+- Laravel `^10.0`, `^11.0`, `^12.0`, or `^13.0`
 - A Brevo account with a v3 API key and a verified sender (for the mail channel)
+
+
 
 ## Installation
 
@@ -56,6 +62,8 @@ the email view:
 php artisan vendor:publish --tag=nyk-logger-config
 php artisan vendor:publish --tag=nyk-logger-views
 ```
+
+
 
 ## Configuration
 
@@ -94,28 +102,32 @@ config file (`config/nyk-logger.php`).
 
 ### Configuration reference
 
-| Key | Env var | Default | Description |
-| --- | --- | --- | --- |
-| `enabled` | `NYK_LOGGER_ENABLED` | `true` | Master switch. |
-| `environments` | — | `['production']` | Environments where the listener is active. |
-| `levels` | — | `error, critical, alert, emergency` | Log levels that trigger an alert. |
-| `channels` | `NYK_LOGGER_CHANNELS` | `mail` | Active channels (`mail`, `slack`). |
-| `mail.api_key` | `NYK_LOGGER_API_KEY` | `null` | Brevo v3 API key. |
-| `mail.to_email` | `NYK_LOGGER_EMAIL` | `null` | Recipient address. |
-| `mail.to_name` | `NYK_LOGGER_NAME` | `System Administrator` | Recipient name. |
-| `mail.from_email` | `NYK_LOGGER_FROM_EMAIL` | `MAIL_FROM_ADDRESS` | Verified Brevo sender. |
-| `mail.from_name` | `NYK_LOGGER_FROM_NAME` | `APP_NAME` | Sender name. |
-| `slack.webhook_url` | `NYK_LOGGER_SLACK_WEBHOOK` | `null` | Slack incoming webhook URL. |
-| `queue.enabled` | `NYK_LOGGER_QUEUE` | `false` | Push delivery onto the queue. |
-| `queue.connection` | `NYK_LOGGER_QUEUE_CONNECTION` | `null` | Queue connection. |
-| `queue.queue` | `NYK_LOGGER_QUEUE_NAME` | `null` | Queue name. |
-| `cooldown` | `NYK_LOGGER_COOLDOWN` | `30` | Minutes an identical error is suppressed. |
-| `rate_limit.max` | `NYK_LOGGER_RATE_MAX` | `20` | Max alerts per window (`0` disables). |
-| `rate_limit.decay` | `NYK_LOGGER_RATE_DECAY` | `60` | Rate window in minutes. |
-| `ignore_exceptions` | — | `[]` | Exception classes (incl. subclasses) to skip. |
-| `ignore_messages` | — | `[]` | Regex patterns; matching messages are skipped. |
-| `redact.keys` | — | common secrets | Context/request keys to replace with `[REDACTED]`. |
-| `redact.patterns` | — | bearer tokens | Value regexes to scrub. |
+
+| Key                 | Env var                       | Default                             | Description                                        |
+| ------------------- | ----------------------------- | ----------------------------------- | -------------------------------------------------- |
+| `enabled`           | `NYK_LOGGER_ENABLED`          | `true`                              | Master switch.                                     |
+| `environments`      | —                             | `['production']`                    | Environments where the listener is active.         |
+| `levels`            | —                             | `error, critical, alert, emergency` | Log levels that trigger an alert.                  |
+| `channels`          | `NYK_LOGGER_CHANNELS`         | `mail`                              | Active channels (`mail`, `slack`).                 |
+| `mail.api_key`      | `NYK_LOGGER_API_KEY`          | `null`                              | Brevo v3 API key.                                  |
+| `mail.to_email`     | `NYK_LOGGER_EMAIL`            | `null`                              | Recipient address.                                 |
+| `mail.to_name`      | `NYK_LOGGER_NAME`             | `System Administrator`              | Recipient name.                                    |
+| `mail.from_email`   | `NYK_LOGGER_FROM_EMAIL`       | `MAIL_FROM_ADDRESS`                 | Verified Brevo sender.                             |
+| `mail.from_name`    | `NYK_LOGGER_FROM_NAME`        | `APP_NAME`                          | Sender name.                                       |
+| `slack.webhook_url` | `NYK_LOGGER_SLACK_WEBHOOK`    | `null`                              | Slack incoming webhook URL.                        |
+| `queue.enabled`     | `NYK_LOGGER_QUEUE`            | `false`                             | Push delivery onto the queue.                      |
+| `queue.connection`  | `NYK_LOGGER_QUEUE_CONNECTION` | `null`                              | Queue connection.                                  |
+| `queue.queue`       | `NYK_LOGGER_QUEUE_NAME`       | `null`                              | Queue name.                                        |
+| `cooldown`          | `NYK_LOGGER_COOLDOWN`         | `30`                                | Minutes an identical error is suppressed.          |
+| `rate_limit.max`    | `NYK_LOGGER_RATE_MAX`         | `20`                                | Max alerts per window (`0` disables).              |
+| `rate_limit.decay`  | `NYK_LOGGER_RATE_DECAY`       | `60`                                | Rate window in minutes.                            |
+| `ignore_exceptions` | —                             | `[]`                                | Exception classes (incl. subclasses) to skip.      |
+| `ignore_messages`   | —                             | `[]`                                | Regex patterns; matching messages are skipped.     |
+| `redact.keys`       | —                             | common secrets                      | Context/request keys to replace with `[REDACTED]`. |
+| `redact.patterns`   | —                             | bearer tokens                       | Value regexes to scrub.                            |
+
+
+
 
 ## Verify your setup
 
@@ -131,23 +143,27 @@ time so misconfiguration surfaces during deploys.
 ## How it works
 
 1. On boot the package checks it is `enabled` and the current environment is in
-   `environments`. If not, it registers nothing (zero overhead).
+  `environments`. If not, it registers nothing (zero overhead).
 2. A global `Log::listen()` handler intercepts entries at the configured
-   `levels` (default `error`, `critical`, `alert`, `emergency`).
+  `levels` (default `error`, `critical`, `alert`, `emergency`).
 3. **Ignore rules** drop matching exception classes / message patterns.
 4. A **fingerprint** is derived from the exception (`file + line + code`) or the
-   message string, checked against a **cooldown** cache entry.
+  message string, checked against a **cooldown** cache entry.
 5. A **global rate cap** limits total alerts per window across all errors.
 6. Request context (URL, method, IP, user, input) is captured and **redacted**,
-   then a `SendAlertJob` fans it out to every enabled channel — **queued** by
+  then a `SendAlertJob` fans it out to every enabled channel — **queued** by
    default so the failing request is never slowed down.
+
+
 
 ## Failure safety
 
 - Each channel's API call is wrapped in `try/catch` with a timeout and **never
-  rethrows** — a downed Brevo/Slack endpoint cannot crash your app.
+rethrows** — a downed Brevo/Slack endpoint cannot crash your app.
 - Cache and rate-limiter access is guarded too; if your backend is down the
-  package fails "open" and still attempts delivery.
+package fails "open" and still attempts delivery.
+
+
 
 ## Manual reporting API
 
@@ -171,15 +187,19 @@ NykLogger::alert('Nightly reconciliation mismatch', 'critical', [
 ]);
 ```
 
+
+
 ## Lifecycle events
 
 Hook into delivery with standard Laravel events:
 
-| Event | When | Payload |
-| --- | --- | --- |
-| `Events\AlertSending` | Just before dispatch (synchronous, **cancellable**) | `AlertPayload $payload` |
-| `Events\AlertSent` | After fan-out to channels | `AlertPayload $payload`, `array<string,bool> $results` |
-| `Events\AlertSuppressed` | When filtered out | `string $reason` (`ignored`/`cooldown`/`rate_limit`/`cancelled`), plus level/message/fingerprint |
+
+| Event                    | When                                                | Payload                                                                                          |
+| ------------------------ | --------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `Events\AlertSending`    | Just before dispatch (synchronous, **cancellable**) | `AlertPayload $payload`                                                                          |
+| `Events\AlertSent`       | After fan-out to channels                           | `AlertPayload $payload`, `array<string,bool> $results`                                           |
+| `Events\AlertSuppressed` | When filtered out                                   | `string $reason` (`ignored`/`cooldown`/`rate_limit`/`cancelled`), plus level/message/fingerprint |
+
 
 Return `false` from an `AlertSending` listener to cancel an alert:
 
@@ -205,6 +225,8 @@ Event::listen(AlertSent::class, function (AlertSent $e) {
 });
 ```
 
+
+
 ## Custom grouping (fingerprint)
 
 By default alerts are grouped by `file + line + code` (or the message for text
@@ -219,6 +241,8 @@ NykLogger::fingerprintUsing(function (string $message, ?\Throwable $e, string $l
     return $e instanceof \App\Exceptions\PaymentException ? 'payments' : null;
 });
 ```
+
+
 
 ## Customising the email template
 
@@ -254,11 +278,15 @@ src/
 └── Views/error-email.blade.php    # responsive HTML template
 ```
 
+
+
 ## Testing
 
 ```bash
 composer test
 ```
+
+
 
 ## License
 

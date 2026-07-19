@@ -10,14 +10,14 @@ use Nanayawkumi\NykLogger\Support\AlertPayload;
  * Fired after an alert has been fanned out to every enabled channel, carrying
  * the per-channel delivery result (channel name => success).
  */
-final readonly class AlertSent
+final class AlertSent
 {
     /**
      * @param  array<string, bool>  $results
      */
     public function __construct(
-        public AlertPayload $payload,
-        public array $results,
+        public readonly AlertPayload $payload,
+        public readonly array $results,
     ) {
     }
 }

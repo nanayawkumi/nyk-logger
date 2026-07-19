@@ -10,10 +10,10 @@ use Nanayawkumi\NykLogger\Support\AlertPayload;
  * Fired synchronously just before an alert is dispatched. A listener may
  * return false to cancel delivery.
  */
-final readonly class AlertSending
+final class AlertSending
 {
     public function __construct(
-        public AlertPayload $payload,
+        public readonly AlertPayload $payload,
     ) {
     }
 }

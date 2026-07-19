@@ -14,20 +14,20 @@ use Throwable;
  * Delivers alerts as HTML email through Brevo's Transactional Email API (v3),
  * using Laravel's HTTP client and bypassing the host app's SMTP stack.
  */
-final readonly class BrevoMailChannel implements AlertChannel
+final class BrevoMailChannel implements AlertChannel
 {
-    private const string ENDPOINT = 'https://api.brevo.com/v3/smtp/email';
+    private const ENDPOINT = 'https://api.brevo.com/v3/smtp/email';
 
-    private const int TIMEOUT_SECONDS = 10;
+    private const TIMEOUT_SECONDS = 10;
 
     public function __construct(
-        private HttpFactory $http,
-        private ViewFactory $view,
-        private ?string $apiKey,
-        private ?string $toEmail,
-        private string $toName,
-        private ?string $fromEmail,
-        private string $fromName,
+        private readonly HttpFactory $http,
+        private readonly ViewFactory $view,
+        private readonly ?string $apiKey,
+        private readonly ?string $toEmail,
+        private readonly string $toName,
+        private readonly ?string $fromEmail,
+        private readonly string $fromName,
     ) {
     }
 
