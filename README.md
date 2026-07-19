@@ -11,6 +11,8 @@ bypassing your host app's SMTP configuration.
 
 Built for production noise control and safety:
 
+- **Two capture sources**: the log pipeline **and** the exception handler — so
+  you can catch uncaught 500s and selected 4xx (403, 404, ...) Laravel never logs
 - **Multi-channel** delivery (Brevo email + Slack)
 - **Queued dispatch** so a failing request never waits on outbound API calls
 - **Per-fingerprint cooldown** + a **global rate cap** to prevent inbox floods
@@ -67,64 +69,91 @@ php artisan vendor:publish --tag=nyk-logger-views
 
 ## Configuration
 
-The only required setup is your `.env`. Add the keys for the channels you use:
+The **only** keys you need in your `.env` are the Brevo credentials:
 
 ```dotenv
-NYK_LOGGER_ENABLED=true
-
-# Channels: comma-separated. Options: mail, slack
-NYK_LOGGER_CHANNELS=mail,slack
-
-# --- Mail (Brevo) ---
 NYK_LOGGER_API_KEY=your-brevo-v3-api-key
 NYK_LOGGER_EMAIL=alerts@yourdomain.com
 NYK_LOGGER_NAME="System Administrator"
 NYK_LOGGER_FROM_EMAIL=noreply@yourdomain.com   # verified sender in Brevo
 NYK_LOGGER_FROM_NAME="My App"
-
-# --- Slack ---
-NYK_LOGGER_SLACK_WEBHOOK=https://hooks.slack.com/services/XXX/YYY/ZZZ
-
-# --- Queue (recommended in production) ---
-NYK_LOGGER_QUEUE=true
-NYK_LOGGER_QUEUE_CONNECTION=redis
-NYK_LOGGER_QUEUE_NAME=notifications
-
-# --- Throttling ---
-NYK_LOGGER_COOLDOWN=30        # minutes an identical error is suppressed
-NYK_LOGGER_RATE_MAX=20        # max alerts within the rate window (0 disables)
-NYK_LOGGER_RATE_DECAY=60      # rate window in minutes
 ```
 
-Array-based settings — the allowed **environments**, listened **levels**,
-**ignore rules**, and **redaction** keys/patterns — live in the published
-config file (`config/nyk-logger.php`).
+Everything else ships with sensible defaults baked into the config file. To
+change any of them (channels, capture sources, queue, cooldown, rate limit,
+ignore/redaction rules, the Slack webhook, ...), publish the config and edit
+the value directly:
+
+```bash
+php artisan vendor:publish --tag=nyk-logger-config
+```
+
+### Capture sources
+
+The package captures problems from two independent, individually toggleable
+sources:
+
+**1. The log pipeline** — reacts to log entries at the configured levels:
+
+```php
+'log' => [
+    'enabled' => true,
+    'levels'  => ['error', 'critical', 'alert', 'emergency'],
+],
+```
+
+**2. The exception handler** — decorates Laravel's handler to catch **uncaught
+exceptions the framework doesn't log by default**, such as 500 server errors
+and selected 4xx (403, 404). Choose exactly what to alert on by HTTP status
+and/or exception class:
+
+```php
+'exceptions' => [
+    'enabled' => true,
+    // Listing 500 also matches ANY server error (status >= 500).
+    'http_statuses' => [500, 403],
+    // ...or match specific throwable types regardless of status.
+    'types' => [
+        \Illuminate\Auth\Access\AuthorizationException::class, // 403
+    ],
+],
+```
+
+Both sources feed the same cooldown and rate cap, so an error caught by both
+(e.g. a logged 500) is de-duplicated into a single alert.
 
 ### Configuration reference
 
 
-| Key                 | Env var                       | Default                             | Description                                        |
-| ------------------- | ----------------------------- | ----------------------------------- | -------------------------------------------------- |
-| `enabled`           | `NYK_LOGGER_ENABLED`          | `true`                              | Master switch.                                     |
-| `environments`      | —                             | `['production']`                    | Environments where the listener is active.         |
-| `levels`            | —                             | `error, critical, alert, emergency` | Log levels that trigger an alert.                  |
-| `channels`          | `NYK_LOGGER_CHANNELS`         | `mail`                              | Active channels (`mail`, `slack`).                 |
-| `mail.api_key`      | `NYK_LOGGER_API_KEY`          | `null`                              | Brevo v3 API key.                                  |
-| `mail.to_email`     | `NYK_LOGGER_EMAIL`            | `null`                              | Recipient address.                                 |
-| `mail.to_name`      | `NYK_LOGGER_NAME`             | `System Administrator`              | Recipient name.                                    |
-| `mail.from_email`   | `NYK_LOGGER_FROM_EMAIL`       | `MAIL_FROM_ADDRESS`                 | Verified Brevo sender.                             |
-| `mail.from_name`    | `NYK_LOGGER_FROM_NAME`        | `APP_NAME`                          | Sender name.                                       |
-| `slack.webhook_url` | `NYK_LOGGER_SLACK_WEBHOOK`    | `null`                              | Slack incoming webhook URL.                        |
-| `queue.enabled`     | `NYK_LOGGER_QUEUE`            | `false`                             | Push delivery onto the queue.                      |
-| `queue.connection`  | `NYK_LOGGER_QUEUE_CONNECTION` | `null`                              | Queue connection.                                  |
-| `queue.queue`       | `NYK_LOGGER_QUEUE_NAME`       | `null`                              | Queue name.                                        |
-| `cooldown`          | `NYK_LOGGER_COOLDOWN`         | `30`                                | Minutes an identical error is suppressed.          |
-| `rate_limit.max`    | `NYK_LOGGER_RATE_MAX`         | `20`                                | Max alerts per window (`0` disables).              |
-| `rate_limit.decay`  | `NYK_LOGGER_RATE_DECAY`       | `60`                                | Rate window in minutes.                            |
-| `ignore_exceptions` | —                             | `[]`                                | Exception classes (incl. subclasses) to skip.      |
-| `ignore_messages`   | —                             | `[]`                                | Regex patterns; matching messages are skipped.     |
-| `redact.keys`       | —                             | common secrets                      | Context/request keys to replace with `[REDACTED]`. |
-| `redact.patterns`   | —                             | bearer tokens                       | Value regexes to scrub.                            |
+Only the Brevo `mail.*` keys read from the environment; everything else is a
+literal default you edit in the published config file.
+
+| Key                 | Env var (mail only)     | Default                             | Description                                        |
+| ------------------- | ----------------------- | ----------------------------------- | -------------------------------------------------- |
+| `enabled`           | —                       | `true`                              | Master switch.                                     |
+| `environments`      | —                       | `['production']`                    | Environments where capture is active.              |
+| `log.enabled`       | —                       | `true`                              | Capture from the log pipeline.                     |
+| `log.levels`        | —                       | `error, critical, alert, emergency` | Log levels that trigger an alert.                  |
+| `exceptions.enabled`| —                       | `true`                              | Capture uncaught exceptions from the handler.      |
+| `exceptions.http_statuses` | —                | `[500]`                             | Statuses to alert on (`500` also matches `>=500`). |
+| `exceptions.types`  | —                       | `[]`                                | Throwable classes to alert on regardless of status.|
+| `channels`          | —                       | `['mail']`                          | Active channels (`mail`, `slack`).                 |
+| `mail.api_key`      | `NYK_LOGGER_API_KEY`    | `null`                              | Brevo v3 API key.                                  |
+| `mail.to_email`     | `NYK_LOGGER_EMAIL`      | `null`                              | Recipient address.                                 |
+| `mail.to_name`      | `NYK_LOGGER_NAME`       | `System Administrator`              | Recipient name.                                    |
+| `mail.from_email`   | `NYK_LOGGER_FROM_EMAIL` | `MAIL_FROM_ADDRESS`                 | Verified Brevo sender.                             |
+| `mail.from_name`    | `NYK_LOGGER_FROM_NAME`  | `APP_NAME`                          | Sender name.                                       |
+| `slack.webhook_url` | —                       | `null`                              | Slack incoming webhook URL.                        |
+| `queue.enabled`     | —                       | `false`                             | Push delivery onto the queue.                      |
+| `queue.connection`  | —                       | `null`                              | Queue connection (`null` = default).               |
+| `queue.queue`       | —                       | `default`                           | Queue name.                                        |
+| `cooldown`          | —                       | `30`                                | Minutes an identical error is suppressed.          |
+| `rate_limit.max`    | —                       | `20`                                | Max alerts per window (`0` disables).              |
+| `rate_limit.decay`  | —                       | `60`                                | Rate window in minutes.                            |
+| `ignore_exceptions` | —                       | `[]`                                | Exception classes (incl. subclasses) to skip.      |
+| `ignore_messages`   | —                       | `[]`                                | Regex patterns; matching messages are skipped.     |
+| `redact.keys`       | —                       | common secrets                      | Context/request keys to replace with `[REDACTED]`. |
+| `redact.patterns`   | —                       | bearer tokens                       | Value regexes to scrub.                            |
 
 
 
@@ -143,9 +172,11 @@ time so misconfiguration surfaces during deploys.
 ## How it works
 
 1. On boot the package checks it is `enabled` and the current environment is in
-  `environments`. If not, it registers nothing (zero overhead).
-2. A global `Log::listen()` handler intercepts entries at the configured
-  `levels` (default `error`, `critical`, `alert`, `emergency`).
+   `environments`. If not, it registers nothing (zero overhead).
+2. Two capture sources feed the pipeline (each independently toggleable):
+   a global `Log::listen()` handler for the configured `log.levels`, and a
+   decorator around the framework's exception handler that catches uncaught
+   exceptions matching your `exceptions.http_statuses` / `exceptions.types`.
 3. **Ignore rules** drop matching exception classes / message patterns.
 4. A **fingerprint** is derived from the exception (`file + line + code`) or the
   message string, checked against a **cooldown** cache entry.
@@ -270,10 +301,13 @@ src/
 │   └── SlackChannel.php           # Slack incoming webhook (Block Kit)
 ├── Jobs/SendAlertJob.php          # queued fan-out + AlertSent event
 ├── Console/TestCommand.php        # php artisan nyk-logger:test
+├── Exceptions/
+│   └── ReportingExceptionHandler.php  # decorates the framework handler
 ├── Events/                        # AlertSending / AlertSent / AlertSuppressed
 ├── Facades/NykLogger.php          # report() / alert() / fingerprintUsing()
 ├── Support/
 │   ├── AlertPayload.php           # immutable, serializable DTO
+│   ├── HttpStatusResolver.php     # throwable -> HTTP status/level
 │   └── Redactor.php               # secret scrubbing
 └── Views/error-email.blade.php    # responsive HTML template
 ```

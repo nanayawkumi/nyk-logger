@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nanayawkumi\NykLogger;
 
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Log\Events\MessageLogged;
@@ -14,6 +15,8 @@ use Nanayawkumi\NykLogger\Channels\BrevoMailChannel;
 use Nanayawkumi\NykLogger\Channels\ChannelManager;
 use Nanayawkumi\NykLogger\Channels\SlackChannel;
 use Nanayawkumi\NykLogger\Console\TestCommand;
+use Nanayawkumi\NykLogger\Exceptions\ReportingExceptionHandler;
+use Nanayawkumi\NykLogger\Support\HttpStatusResolver;
 use Nanayawkumi\NykLogger\Support\Redactor;
 
 final class NykLoggerServiceProvider extends ServiceProvider
@@ -67,15 +70,48 @@ final class NykLoggerServiceProvider extends ServiceProvider
             $this->validateConfig();
         }
 
-        if (! $this->shouldListen()) {
+        if (! $this->isActive()) {
             return;
         }
 
+        $config = $this->app->make('config')->get(self::CONFIG_KEY);
+
+        if ($config['log']['enabled'] ?? true) {
+            $this->registerLogListener();
+        }
+
+        if ($config['exceptions']['enabled'] ?? true) {
+            $this->registerExceptionHandler();
+        }
+    }
+
+    /**
+     * Capture from the logging pipeline (Log::error(), ...).
+     */
+    private function registerLogListener(): void
+    {
         $manager = $this->app->make(AlertManager::class);
 
         Log::listen(static function (MessageLogged $log) use ($manager): void {
             $manager->capture($log->level, $log->message, $log->context);
         });
+    }
+
+    /**
+     * Decorate the framework's exception handler so uncaught exceptions (500s,
+     * 403, 404, ...) can be captured directly, per config.
+     */
+    private function registerExceptionHandler(): void
+    {
+        $this->app->extend(
+            ExceptionHandler::class,
+            fn (ExceptionHandler $handler, $app): ExceptionHandler => new ReportingExceptionHandler(
+                inner: $handler,
+                alerts: $app->make(AlertManager::class),
+                status: $app->make(HttpStatusResolver::class),
+                config: (array) $app->make('config')->get(self::CONFIG_KEY.'.exceptions', []),
+            ),
+        );
     }
 
     private function registerChannels(): void
@@ -149,9 +185,9 @@ final class NykLoggerServiceProvider extends ServiceProvider
     }
 
     /**
-     * Determine whether the global listener should be registered at all.
+     * Determine whether the package should register any capture source at all.
      */
-    private function shouldListen(): bool
+    private function isActive(): bool
     {
         $config = $this->app->make('config')->get(self::CONFIG_KEY);
 

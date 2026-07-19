@@ -25,7 +25,15 @@ abstract class TestCase extends Orchestra
             'enabled' => true,
             // Testbench boots in the "testing" environment, so allow it here.
             'environments' => ['testing'],
-            'levels' => ['error', 'critical', 'alert', 'emergency'],
+            'log' => [
+                'enabled' => true,
+                'levels' => ['error', 'critical', 'alert', 'emergency'],
+            ],
+            'exceptions' => [
+                'enabled' => false,
+                'http_statuses' => [500],
+                'types' => [],
+            ],
             'channels' => ['mail'],
             'mail' => [
                 'api_key' => 'test-brevo-key',

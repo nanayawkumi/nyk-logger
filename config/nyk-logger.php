@@ -2,128 +2,94 @@
 
 declare(strict_types=1);
 
-return [
-    /*
-    |--------------------------------------------------------------------------
-    | Global Toggle
-    |--------------------------------------------------------------------------
-    | Master switch for the package. When false, no listeners fire and no
-    | alerts are dispatched regardless of environment.
-    */
-    'enabled' => env('NYK_LOGGER_ENABLED', true),
+/*
+|--------------------------------------------------------------------------
+| nyk-logger configuration
+|--------------------------------------------------------------------------
+| Only the Brevo (mail) credentials are wired to your .env — those are the
+| only keys you need to set there. Everything else uses the sensible defaults
+| below; edit a value here if you want to override it.
+*/
 
-    /*
-    |--------------------------------------------------------------------------
-    | Allowed Environments
-    |--------------------------------------------------------------------------
-    | Alerts are only dispatched when App::environment() matches one of these.
-    */
-    'environments' => [
-        'production',
+return [
+
+    // Master switch for the whole package.
+    'enabled' => true,
+
+    // Environments where capture is active. Add 'local', 'staging', etc.
+    'environments' => ['production'],
+
+    // --- Capture sources (each can be toggled independently) ---
+
+    // 1) The logging pipeline (Log::error(), Log::critical(), ...).
+    'log' => [
+        'enabled' => true,
+        'levels' => ['error', 'critical', 'alert', 'emergency'],
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Log Levels
-    |--------------------------------------------------------------------------
-    | Which PSR-3 levels trigger an alert.
-    */
-    'levels' => ['error', 'critical', 'alert', 'emergency'],
+    // 2) The framework's exception handler — catches uncaught exceptions that
+    //    Laravel does NOT log by default (500 server errors, and selected 4xx
+    //    such as 403 / 404).
+    'exceptions' => [
+        'enabled' => true,
+        // Statuses to alert on. Listing 500 also matches ANY server error (>= 500).
+        'http_statuses' => [500],
+        // ...or alert on specific throwable types regardless of status, e.g.:
+        //   \Illuminate\Auth\Access\AuthorizationException::class,           // 403
+        //   \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class, // 404
+        'types' => [],
+    ],
+
+    // Delivery channels: 'mail', 'slack', or both.
+    'channels' => ['mail'],
 
     /*
     |--------------------------------------------------------------------------
-    | Active Channels
+    | Brevo (mail) — the ONLY settings you need in your .env
     |--------------------------------------------------------------------------
-    | Any combination of: 'mail', 'slack'. Alerts fan out to every enabled
-    | channel.
-    */
-    'channels' => explode(',', (string) env('NYK_LOGGER_CHANNELS', 'mail')),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Mail Channel (Brevo Transactional API v3)
-    |--------------------------------------------------------------------------
+    | The sender must be a verified sender in your Brevo account.
     */
     'mail' => [
         'api_key' => env('NYK_LOGGER_API_KEY'),
         'to_email' => env('NYK_LOGGER_EMAIL'),
         'to_name' => env('NYK_LOGGER_NAME', 'System Administrator'),
-        // Sender must be a verified sender in your Brevo account.
         'from_email' => env('NYK_LOGGER_FROM_EMAIL', env('MAIL_FROM_ADDRESS')),
         'from_name' => env('NYK_LOGGER_FROM_NAME', env('APP_NAME', 'NYK Logger')),
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Slack Channel (Incoming Webhook)
-    |--------------------------------------------------------------------------
-    */
+    // Slack incoming webhook. Only needed if 'slack' is in channels. Keep the
+    // secret out of source control, e.g. env('NYK_LOGGER_SLACK_WEBHOOK').
     'slack' => [
-        'webhook_url' => env('NYK_LOGGER_SLACK_WEBHOOK'),
+        'webhook_url' => null,
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Queue
-    |--------------------------------------------------------------------------
-    | When enabled, alerts are pushed onto the queue so the failing request is
-    | never slowed down by the outbound API call. Falls back to synchronous
-    | dispatch when disabled.
-    */
+    // Push delivery onto the queue so failing requests never wait on the API.
     'queue' => [
-        'enabled' => (bool) env('NYK_LOGGER_QUEUE', false),
-        'connection' => env('NYK_LOGGER_QUEUE_CONNECTION'),
-        'queue' => env('NYK_LOGGER_QUEUE_NAME'),
+        'enabled' => false,
+        'connection' => null, // null = the app's default connection
+        'queue' => 'default',
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Per-Fingerprint Cooldown
-    |--------------------------------------------------------------------------
-    | Minutes an identical error fingerprint is suppressed after its first
-    | alert, preventing inbox flooding from a single looping error.
-    */
-    'cooldown' => (int) env('NYK_LOGGER_COOLDOWN', 30),
+    // Minutes an identical error is suppressed after its first alert.
+    'cooldown' => 30,
 
-    /*
-    |--------------------------------------------------------------------------
-    | Global Rate Limit
-    |--------------------------------------------------------------------------
-    | A hard ceiling on the total number of alerts (across all distinct
-    | errors) within the decay window. Protects against bursts of many
-    | *different* errors. Set 'max' to 0 to disable.
-    */
+    // Global ceiling on alerts across ALL errors within the window.
     'rate_limit' => [
-        'max' => (int) env('NYK_LOGGER_RATE_MAX', 20),
-        'decay' => (int) env('NYK_LOGGER_RATE_DECAY', 60), // minutes
+        'max' => 20,  // set to 0 to disable
+        'decay' => 60, // window in minutes
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Ignore Rules
-    |--------------------------------------------------------------------------
-    | Exceptions of these classes (or subclasses) and log messages matching
-    | these regex patterns are never alerted on. Great for silencing noisy,
-    | non-actionable errors like 404s and validation failures.
-    */
+    // Never alert on these exception classes (incl. subclasses) or on log
+    // messages matching these regex patterns.
     'ignore_exceptions' => [
-        // \Illuminate\Auth\AuthenticationException::class,
         // \Illuminate\Validation\ValidationException::class,
-        // \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
     ],
-
     'ignore_messages' => [
         // '/Route \[.*\] not defined/',
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Redaction
-    |--------------------------------------------------------------------------
-    | Context/request keys whose values are replaced with [REDACTED] before
-    | anything leaves your app. Matching is case-insensitive. Value patterns
-    | (regex) scrub secrets found anywhere in string values.
-    */
+    // Replace these values with [REDACTED] before anything leaves your app.
+    // Keys match case-insensitively; patterns scrub secrets inside strings.
     'redact' => [
         'keys' => [
             'password',

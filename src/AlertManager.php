@@ -67,7 +67,22 @@ final class AlertManager
     }
 
     /**
-     * Manually report a throwable, regardless of the configured level filter.
+     * Capture a throwable from an automatic source (e.g. the exception
+     * handler). Skips the log-level filter but still honours ignore rules,
+     * cooldown and the rate cap.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    public function captureThrowable(Throwable $exception, string $level = 'error', array $context = []): bool
+    {
+        $context['exception'] = $exception;
+
+        return $this->process($level, $exception->getMessage(), $context, enforceIgnore: true);
+    }
+
+    /**
+     * Manually report a throwable, regardless of the configured level filter
+     * and ignore rules (it's an explicit, intentional call).
      *
      * @param  array<string, mixed>  $context
      */
@@ -175,7 +190,7 @@ final class AlertManager
      */
     private function levels(): array
     {
-        return (array) $this->config->get('nyk-logger.levels', ['error', 'critical', 'alert', 'emergency']);
+        return (array) $this->config->get('nyk-logger.log.levels', ['error', 'critical', 'alert', 'emergency']);
     }
 
     private function shouldIgnore(string $message, ?Throwable $exception): bool

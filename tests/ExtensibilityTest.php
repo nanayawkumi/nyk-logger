@@ -41,7 +41,7 @@ final class ExtensibilityTest extends TestCase
     #[Test]
     public function manual_reports_bypass_the_level_filter(): void
     {
-        config()->set('nyk-logger.levels', ['emergency']);
+        config()->set('nyk-logger.log.levels', ['emergency']);
         Http::fake(['api.brevo.com/*' => Http::response([], 201)]);
 
         // "error" is not in the level filter, but a manual report still fires.
