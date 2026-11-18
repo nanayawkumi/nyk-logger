@@ -40,7 +40,7 @@ return [
         'types' => [],
     ],
 
-    // Delivery channels: 'mail', 'slack', or both.
+    // Delivery channels: 'mail', 'slack', 'nyk' (NykDesk Cloud), or a combination.
     'channels' => ['mail'],
 
     /*
@@ -61,6 +61,19 @@ return [
     // secret out of source control, e.g. env('NYK_LOGGER_SLACK_WEBHOOK').
     'slack' => [
         'webhook_url' => null,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | NykDesk Cloud — project API key ingest
+    |--------------------------------------------------------------------------
+    | Create an API key in NykDesk for your project, then point endpoint at
+    | POST /api/v1/ingest/alerts on your nyklogger-api host.
+    */
+    'nyk' => [
+        'api_key' => env('NYK_CLOUD_API_KEY'),
+        'endpoint' => env('NYK_CLOUD_ENDPOINT', 'http://localhost:8000/api/v1/ingest/alerts'),
+        'timeout' => (int) env('NYK_CLOUD_TIMEOUT', 10),
     ],
 
     // Push delivery onto the queue so failing requests never wait on the API.

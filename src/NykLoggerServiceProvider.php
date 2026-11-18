@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 use Nanayawkumi\NykLogger\Channels\BrevoMailChannel;
 use Nanayawkumi\NykLogger\Channels\ChannelManager;
+use Nanayawkumi\NykLogger\Channels\NykCloudChannel;
 use Nanayawkumi\NykLogger\Channels\SlackChannel;
 use Nanayawkumi\NykLogger\Console\TestCommand;
 use Nanayawkumi\NykLogger\Exceptions\ReportingExceptionHandler;
@@ -138,6 +139,17 @@ final class NykLoggerServiceProvider extends ServiceProvider
                 webhookUrl: $slack['webhook_url'] ?? null,
             );
         });
+
+        $this->app->bind(NykCloudChannel::class, static function ($app): NykCloudChannel {
+            $nyk = $app['config']->get(self::CONFIG_KEY.'.nyk', []);
+
+            return new NykCloudChannel(
+                http: $app->make(HttpFactory::class),
+                apiKey: $nyk['api_key'] ?? null,
+                endpoint: $nyk['endpoint'] ?? null,
+                timeoutSeconds: (int) ($nyk['timeout'] ?? 10),
+            );
+        });
     }
 
     /**
@@ -174,6 +186,16 @@ final class NykLoggerServiceProvider extends ServiceProvider
 
         if (in_array('slack', $channels, true) && empty($config['slack']['webhook_url'])) {
             $problems[] = 'slack.webhook_url (NYK_LOGGER_SLACK_WEBHOOK)';
+        }
+
+        if (in_array('nyk', $channels, true)) {
+            $nyk = $config['nyk'] ?? [];
+            if (empty($nyk['api_key'])) {
+                $problems[] = 'nyk.api_key (NYK_CLOUD_API_KEY)';
+            }
+            if (empty($nyk['endpoint'])) {
+                $problems[] = 'nyk.endpoint (NYK_CLOUD_ENDPOINT)';
+            }
         }
 
         if ($problems !== []) {

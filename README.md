@@ -6,14 +6,14 @@
 
 Lightweight Laravel package (10 → 13) that globally catches application errors
 and exceptions and dispatches structured alerts through pluggable channels —
-**email via the Brevo Transactional API v3** and/or **Slack** — completely
+**email via the Brevo Transactional API v3**, **Slack**, and/or **NykDesk Cloud** — completely
 bypassing your host app's SMTP configuration.
 
 Built for production noise control and safety:
 
 - **Two capture sources**: the log pipeline **and** the exception handler — so
   you can catch uncaught 500s and selected 4xx (403, 404, ...) Laravel never logs
-- **Multi-channel** delivery (Brevo email + Slack)
+- **Multi-channel** delivery (Brevo email + Slack + NykDesk Cloud)
 - **Queued dispatch** so a failing request never waits on outbound API calls
 - **Per-fingerprint cooldown** + a **global rate cap** to prevent inbox floods
 - **Ignore rules** for noisy, non-actionable errors (404s, validation, etc.)
@@ -137,13 +137,16 @@ literal default you edit in the published config file.
 | `exceptions.enabled`| —                       | `true`                              | Capture uncaught exceptions from the handler.      |
 | `exceptions.http_statuses` | —                | `[500]`                             | Statuses to alert on (`500` also matches `>=500`). |
 | `exceptions.types`  | —                       | `[]`                                | Throwable classes to alert on regardless of status.|
-| `channels`          | —                       | `['mail']`                          | Active channels (`mail`, `slack`).                 |
+| `channels`          | —                       | `['mail']`                          | Active channels (`mail`, `slack`, `nyk`).          |
 | `mail.api_key`      | `NYK_LOGGER_API_KEY`    | `null`                              | Brevo v3 API key.                                  |
 | `mail.to_email`     | `NYK_LOGGER_EMAIL`      | `null`                              | Recipient address.                                 |
 | `mail.to_name`      | `NYK_LOGGER_NAME`       | `System Administrator`              | Recipient name.                                    |
 | `mail.from_email`   | `NYK_LOGGER_FROM_EMAIL` | `MAIL_FROM_ADDRESS`                 | Verified Brevo sender.                             |
 | `mail.from_name`    | `NYK_LOGGER_FROM_NAME`  | `APP_NAME`                          | Sender name.                                       |
 | `slack.webhook_url` | —                       | `null`                              | Slack incoming webhook URL.                        |
+| `nyk.api_key`       | `NYK_CLOUD_API_KEY`     | `null`                              | NykDesk project API key.                           |
+| `nyk.endpoint`      | `NYK_CLOUD_ENDPOINT`    | local ingest URL                    | NykDesk `POST /api/v1/ingest/alerts`.              |
+| `nyk.timeout`       | `NYK_CLOUD_TIMEOUT`     | `10`                                | HTTP timeout seconds.                              |
 | `queue.enabled`     | —                       | `false`                             | Push delivery onto the queue.                      |
 | `queue.connection`  | —                       | `null`                              | Queue connection (`null` = default).               |
 | `queue.queue`       | —                       | `default`                           | Queue name.                                        |
@@ -156,6 +159,22 @@ literal default you edit in the published config file.
 | `redact.patterns`   | —                       | bearer tokens                       | Value regexes to scrub.                            |
 
 
+
+
+## NykDesk Cloud
+
+Ship alerts into your NykDesk project dashboard:
+
+```env
+NYK_CLOUD_API_KEY=nyk_your_project_key
+NYK_CLOUD_ENDPOINT=https://your-nykdesk-api.host/api/v1/ingest/alerts
+```
+
+```php
+'channels' => ['nyk'], // or combine with mail/slack
+```
+
+Create the API key in the NykDesk app under the project **Keys** tab.
 
 
 ## Verify your setup
@@ -298,7 +317,8 @@ src/
 ├── Channels/
 │   ├── ChannelManager.php         # resolves enabled channels
 │   ├── BrevoMailChannel.php       # Brevo Transactional API v3
-│   └── SlackChannel.php           # Slack incoming webhook (Block Kit)
+│   ├── SlackChannel.php           # Slack incoming webhook (Block Kit)
+│   └── NykCloudChannel.php        # NykDesk Cloud ingest API
 ├── Jobs/SendAlertJob.php          # queued fan-out + AlertSent event
 ├── Console/TestCommand.php        # php artisan nyk-logger:test
 ├── Exceptions/

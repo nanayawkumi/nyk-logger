@@ -21,6 +21,7 @@ final class ChannelManager
     private const DRIVERS = [
         'mail' => BrevoMailChannel::class,
         'slack' => SlackChannel::class,
+        'nyk' => NykCloudChannel::class,
     ];
 
     public function __construct(
